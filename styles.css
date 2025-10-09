@@ -10,6 +10,7 @@ body {
     color: #333;
     line-height: 1.6;
     padding: 20px;
+    padding-bottom: 120px; /* Espaço para o total fixo */
 }
 
 .container {
@@ -19,6 +20,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     padding: 30px;
+    position: relative;
 }
 
 h1 {
@@ -82,9 +84,21 @@ button:hover {
     font-size: 18px;
 }
 
+.product-quantity {
+    width: 80px;
+    margin-right: 15px;
+}
+
 .product-price {
     width: 100px;
     margin-right: 15px;
+}
+
+.product-subtotal {
+    width: 100px;
+    margin-right: 15px;
+    font-weight: bold;
+    color: #27ae60;
 }
 
 .checkbox {
@@ -105,11 +119,16 @@ button:hover {
 }
 
 .total-section {
-    margin-top: 30px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     padding: 20px;
     background-color: #f8f9fa;
-    border-radius: 5px;
+    border-radius: 0;
     text-align: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
 }
 
 .total-amount {
@@ -135,8 +154,18 @@ button:hover {
         align-items: flex-start;
     }
     
-    .product-price {
+    .product-quantity,
+    .product-price,
+    .product-subtotal {
         width: 100%;
-        margin: 10px 0;
+        margin: 5px 0;
+    }
+
+    .total-section {
+        padding: 15px;
+    }
+
+    .total-amount {
+        font-size: 20px;
     }
 }

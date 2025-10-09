@@ -30,6 +30,7 @@ function addProduct() {
     const newProduct = {
         id: Date.now(),
         name: productName,
+        quantity: 1,
         price: 0,
         checked: false
     };
@@ -50,12 +51,15 @@ function renderProducts() {
     productList.innerHTML = '';
     
     products.forEach(product => {
+        const subtotal = product.quantity * product.price;
         const productItem = document.createElement('div');
         productItem.className = `product-item ${product.checked ? 'checked' : ''}`;
         productItem.innerHTML = `
             <input type="checkbox" class="checkbox" ${product.checked ? 'checked' : ''} data-id="${product.id}">
             <div class="product-name">${product.name}</div>
+            <input type="number" class="product-quantity" min="1" value="${product.quantity}" data-id="${product.id}">
             <input type="number" class="product-price" placeholder="R$ 0,00" min="0" step="0.01" value="${product.price > 0 ? product.price.toFixed(2) : ''}" data-id="${product.id}">
+            <div class="product-subtotal">R$ ${subtotal.toFixed(2)}</div>
             <button class="delete-btn" data-id="${product.id}">Excluir</button>
         `;
         
@@ -64,6 +68,10 @@ function renderProducts() {
     
     document.querySelectorAll('.checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', toggleProduct);
+    });
+
+    document.querySelectorAll('.product-quantity').forEach(input => {
+        input.addEventListener('change', updateProductQuantity);
     });
     
     document.querySelectorAll('.product-price').forEach(input => {
@@ -87,6 +95,19 @@ function toggleProduct(event) {
     }
 }
 
+function updateProductQuantity(event) {
+    const productId = parseInt(event.target.dataset.id);
+    const product = products.find(p => p.id === productId);
+    
+    if (product) {
+        const quantity = parseInt(event.target.value) || 1;
+        product.quantity = quantity;
+        saveProducts();
+        renderProducts();
+        updateTotal();
+    }
+}
+
 function updateProductPrice(event) {
     const productId = parseInt(event.target.dataset.id);
     const product = products.find(p => p.id === productId);
@@ -95,6 +116,7 @@ function updateProductPrice(event) {
         const price = parseFloat(event.target.value) || 0;
         product.price = price;
         saveProducts();
+        renderProducts();
         updateTotal();
     }
 }
@@ -111,7 +133,7 @@ function deleteProduct(event) {
 function updateTotal() {
     const total = products
         .filter(product => product.checked)
-        .reduce((sum, product) => sum + product.price, 0);
+        .reduce((sum, product) => sum + (product.quantity * product.price), 0);
     
     totalAmount.textContent = `R$ ${total.toFixed(2)}`;
 }
