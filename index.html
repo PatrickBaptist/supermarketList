@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Lista de Compras</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Minha Lista de Compras</h1>
+        
+        <div class="form-group">
+            <input type="text" id="productInput" placeholder="Digite o nome do produto...">
+            <button id="addProductBtn">Adicionar Produto</button>
+        </div>
+        
+        <div class="product-list" id="productList">
+            <!-- Os produtos serão inseridos aqui dinamicamente -->
+        </div>
+        
+        <div class="total-section">
+            <h3>Total da Compra</h3>
+            <div class="total-amount" id="totalAmount">R$ 0,00</div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
