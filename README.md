@@ -4,7 +4,11 @@ Um sistema web prático para gerenciar suas compras no mercado, calcular o total
 🚀 Funcionalidades
 📋 Gerenciamento de Lista: Adicione produtos antes de ir ao mercado
 
+📄 Lista completa: Cole vários produtos de uma vez; a quantidade é identificada automaticamente
+
 💰 Controle de Preços: Insira os preços diretamente no mercado
+
+⌨️ Digitação rápida: Digite apenas os números do preço; `5` vira `0,05`, `50` vira `0,50` e `500` vira `5,00`
 
 ✅ Marcação de Itens: Marque produtos como comprados
 
@@ -16,11 +20,13 @@ Um sistema web prático para gerenciar suas compras no mercado, calcular o total
 
 🗑️ Exclusão Fácil: Remova itens que não encontrou
 
+🧹 Limpeza completa: Exclua toda a lista de uma vez, após uma confirmação
+
 🛠️ Como Usar
 1. Antes de ir ao mercado
-# Digite o nome do produto no campo de texto
-# Clique em "Adicionar Produto" ou pressione Enter
-# Repita para todos os itens da sua lista
+# Digite um produto ou cole uma lista com um produto por linha
+# Comece cada linha com a quantidade, por exemplo: `4 maçãs`
+# Clique em "Adicionar à lista" (ou use Ctrl+Enter)
 
 2. No mercado
 # Para cada produto que encontrar:

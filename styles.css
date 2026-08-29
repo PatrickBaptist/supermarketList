@@ -33,13 +33,54 @@ h1 {
     margin-bottom: 20px;
 }
 
-input[type="text"], input[type="number"] {
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+textarea,
+input[type="text"],
+input[type="number"] {
     width: 100%;
     padding: 12px;
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 16px;
     margin-bottom: 10px;
+}
+
+textarea {
+    min-height: 130px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+textarea:focus,
+input:focus {
+    border-color: #3498db;
+    outline: 2px solid rgba(52, 152, 219, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.input-hint {
+    color: #667085;
+    font-size: 14px;
+}
+
+.add-feedback {
+    min-height: 24px;
+    margin-top: 6px;
+    color: #237a3b;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 button {
@@ -57,13 +98,42 @@ button:hover {
     background-color: #2980b9;
 }
 
+.list-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.list-actions h2 {
+    color: #2c3e50;
+    font-size: 20px;
+}
+
+.clear-list-btn {
+    background-color: #e74c3c;
+    padding: 9px 14px;
+    font-size: 14px;
+}
+
+.clear-list-btn:hover:not(:disabled) {
+    background-color: #c0392b;
+}
+
+button:disabled {
+    background-color: #b8c0c8;
+    cursor: not-allowed;
+}
+
 .product-list {
-    margin-top: 30px;
+    margin-top: 10px;
 }
 
 .product-item {
     display: flex;
     align-items: center;
+    gap: 12px;
     padding: 15px;
     border-bottom: 1px solid #eee;
     transition: background-color 0.3s;
@@ -79,29 +149,62 @@ button:hover {
     color: #7f8c8d;
 }
 
+.product-main {
+    display: flex;
+    align-items: center;
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
 .product-name {
-    flex-grow: 1;
+    min-width: 0;
     font-size: 18px;
+    overflow-wrap: anywhere;
 }
 
-.product-quantity {
-    width: 80px;
-    margin-right: 15px;
+.product-details {
+    display: grid;
+    grid-template-columns: 64px 96px 100px;
+    align-items: end;
+    gap: 8px;
 }
 
+.product-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+}
+
+.field-label {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.product-field input {
+    height: 38px;
+    margin: 0;
+    padding: 7px 8px;
+}
+
+.product-quantity,
 .product-price {
-    width: 100px;
-    margin-right: 15px;
+    width: 100%;
 }
 
 .product-subtotal {
-    width: 100px;
-    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
     font-weight: bold;
     color: #27ae60;
+    white-space: nowrap;
 }
 
 .checkbox {
+    flex: 0 0 auto;
     width: 20px;
     height: 20px;
     margin-right: 15px;
@@ -109,8 +212,10 @@ button:hover {
 }
 
 .delete-btn {
+    align-self: flex-end;
     background-color: #e74c3c;
-    padding: 8px 12px;
+    min-height: 38px;
+    padding: 8px 10px;
     font-size: 14px;
 }
 
@@ -145,24 +250,74 @@ button:hover {
 }
 
 @media (max-width: 600px) {
+    body {
+        padding: 10px;
+        padding-bottom: 100px;
+    }
+
     .container {
-        padding: 15px;
+        padding: 12px;
     }
-    
+
     .product-item {
-        flex-direction: column;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 10px 6px;
     }
-    
-    .product-quantity,
-    .product-price,
+
+    .product-main {
+        min-width: 0;
+    }
+
+    .product-name {
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .checkbox {
+        margin-right: 9px;
+    }
+
+    .product-details {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        grid-template-columns: 58px 94px minmax(88px, 1fr);
+        gap: 6px;
+    }
+
+    .product-field input {
+        height: 34px;
+        padding: 5px 7px;
+        font-size: 15px;
+    }
+
     .product-subtotal {
-        width: 100%;
-        margin: 5px 0;
+        min-height: 34px;
+        font-size: 14px;
+    }
+
+    .delete-btn {
+        grid-column: 2;
+        grid-row: 1;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 12px;
+    }
+
+    .form-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .list-actions {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .total-section {
-        padding: 15px;
+        padding: 10px;
     }
 
     .total-amount {

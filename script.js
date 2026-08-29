@@ -2,6 +2,8 @@ const productInput = document.getElementById('productInput');
 const addProductBtn = document.getElementById('addProductBtn');
 const productList = document.getElementById('productList');
 const totalAmount = document.getElementById('totalAmount');
+const addFeedback = document.getElementById('addFeedback');
+const clearListBtn = document.getElementById('clearListBtn');
 
 let products = [];
 
@@ -19,30 +21,70 @@ function saveProducts() {
     localStorage.setItem('shoppingList', JSON.stringify(products));
 }
 
-function addProduct() {
-    const productName = productInput.value.trim();
-    
-    if (productName === '') {
-        alert('Por favor, digite o nome do produto.');
+function escapeHtml(text) {
+    return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function formatPrice(price) {
+    return Number(price).toFixed(2).replace('.', ',');
+}
+
+function parseShoppingList(text) {
+    return text
+        // Também trata entidades de espaço caso tenham sido copiadas de uma página.
+        .replace(/&(?:#x20|#32|nbsp);/gi, ' ')
+        .split(/\r?\n/)
+        .map(line => line.trim().replace(/^[-*•]\s*/, ''))
+        .filter(Boolean)
+        .map(line => {
+            const match = line.match(/^(\d+)(?:\s*[x×]\s*|\s+)(.+)$/i);
+
+            if (!match) {
+                return { name: line, quantity: 1 };
+            }
+
+            return {
+                name: match[2].trim(),
+                quantity: Math.max(1, parseInt(match[1], 10))
+            };
+        })
+        .filter(product => product.name !== '');
+}
+
+function addProducts() {
+    const parsedProducts = parseShoppingList(productInput.value);
+
+    if (parsedProducts.length === 0) {
+        addFeedback.textContent = 'Digite ou cole pelo menos um produto.';
+        productInput.focus();
         return;
     }
-    
-    const newProduct = {
-        id: Date.now(),
-        name: productName,
-        quantity: 1,
+
+    const firstId = Date.now();
+    const newProducts = parsedProducts.map((product, index) => ({
+        id: firstId + index,
+        name: product.name,
+        quantity: product.quantity,
         price: 0,
         checked: false
-    };
-    
-    products.push(newProduct);
+    }));
+
+    products.push(...newProducts);
     productInput.value = '';
-    
+    addFeedback.textContent = `${newProducts.length} ${newProducts.length === 1 ? 'produto adicionado' : 'produtos adicionados'}.`;
+
     saveProducts();
     renderProducts();
 }
 
 function renderProducts() {
+    clearListBtn.disabled = products.length === 0;
+
     if (products.length === 0) {
         productList.innerHTML = '<div class="empty-message">Sua lista de compras está vazia. Adicione produtos acima.</div>';
         return;
@@ -55,11 +97,24 @@ function renderProducts() {
         const productItem = document.createElement('div');
         productItem.className = `product-item ${product.checked ? 'checked' : ''}`;
         productItem.innerHTML = `
-            <input type="checkbox" class="checkbox" ${product.checked ? 'checked' : ''} data-id="${product.id}">
-            <div class="product-name">${product.name}</div>
-            <input type="number" class="product-quantity" min="1" value="${product.quantity}" data-id="${product.id}">
-            <input type="number" class="product-price" placeholder="R$ 0,00" min="0" step="0.01" value="${product.price > 0 ? product.price.toFixed(2) : ''}" data-id="${product.id}">
-            <div class="product-subtotal">R$ ${subtotal.toFixed(2)}</div>
+            <div class="product-main">
+                <input type="checkbox" class="checkbox" ${product.checked ? 'checked' : ''} data-id="${product.id}" aria-label="Marcar ${escapeHtml(product.name)} como comprado">
+                <div class="product-name">${escapeHtml(product.name)}</div>
+            </div>
+            <div class="product-details">
+                <label class="product-field quantity-field">
+                    <span class="field-label">Qtd.</span>
+                    <input type="number" class="product-quantity" min="1" value="${product.quantity}" data-id="${product.id}" aria-label="Quantidade de ${escapeHtml(product.name)}">
+                </label>
+                <label class="product-field price-field">
+                    <span class="field-label">Preço</span>
+                    <input type="text" inputmode="numeric" class="product-price" placeholder="0,00" value="${product.price > 0 ? formatPrice(product.price) : ''}" data-id="${product.id}" aria-label="Preço de ${escapeHtml(product.name)}">
+                </label>
+                <div class="product-field subtotal-field">
+                    <span class="field-label">Subtotal</span>
+                    <strong class="product-subtotal">R$ ${formatPrice(subtotal)}</strong>
+                </div>
+            </div>
             <button class="delete-btn" data-id="${product.id}">Excluir</button>
         `;
         
@@ -75,7 +130,7 @@ function renderProducts() {
     });
     
     document.querySelectorAll('.product-price').forEach(input => {
-        input.addEventListener('change', updateProductPrice);
+        input.addEventListener('input', updateProductPrice);
     });
     
     document.querySelectorAll('.delete-btn').forEach(button => {
@@ -113,10 +168,17 @@ function updateProductPrice(event) {
     const product = products.find(p => p.id === productId);
     
     if (product) {
-        const price = parseFloat(event.target.value) || 0;
+        const digits = event.target.value.replace(/\D/g, '');
+        const price = digits === '' ? 0 : parseInt(digits, 10) / 100;
+
         product.price = price;
+        event.target.value = digits === '' ? '' : formatPrice(price);
+
+        const subtotal = product.quantity * product.price;
+        const subtotalElement = event.target.closest('.product-item').querySelector('.product-subtotal');
+        subtotalElement.textContent = `R$ ${formatPrice(subtotal)}`;
+
         saveProducts();
-        renderProducts();
         updateTotal();
     }
 }
@@ -130,18 +192,39 @@ function deleteProduct(event) {
     updateTotal();
 }
 
+function clearProductList() {
+    if (products.length === 0) {
+        return;
+    }
+
+    const confirmation = window.confirm(`Excluir todos os ${products.length} produtos da lista?`);
+
+    if (!confirmation) {
+        return;
+    }
+
+    products = [];
+    addFeedback.textContent = 'Toda a lista foi excluída.';
+
+    saveProducts();
+    renderProducts();
+    updateTotal();
+}
+
 function updateTotal() {
     const total = products
         .filter(product => product.checked)
         .reduce((sum, product) => sum + (product.quantity * product.price), 0);
     
-    totalAmount.textContent = `R$ ${total.toFixed(2)}`;
+    totalAmount.textContent = `R$ ${formatPrice(total)}`;
 }
 
-addProductBtn.addEventListener('click', addProduct);
-productInput.addEventListener('keypress', function(event) {
-    if (event.key === 'Enter') {
-        addProduct();
+addProductBtn.addEventListener('click', addProducts);
+clearListBtn.addEventListener('click', clearProductList);
+productInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        addProducts();
     }
 });
 

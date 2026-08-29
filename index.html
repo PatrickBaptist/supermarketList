@@ -11,10 +11,20 @@
         <h1>Minha Lista de Compras</h1>
         
         <div class="form-group">
-            <input type="text" id="productInput" placeholder="Digite o nome do produto...">
-            <button id="addProductBtn">Adicionar Produto</button>
+            <label for="productInput">Produtos</label>
+            <textarea id="productInput" rows="6" placeholder="Cole sua lista aqui, um produto por linha:&#10;4 maçãs&#10;1 arroz&#10;1 bebida zero"></textarea>
+            <div class="form-actions">
+                <span class="input-hint">O número no início será usado como quantidade.</span>
+                <button id="addProductBtn">Adicionar à lista</button>
+            </div>
+            <div id="addFeedback" class="add-feedback" role="status" aria-live="polite"></div>
         </div>
         
+        <div class="list-actions">
+            <h2>Lista</h2>
+            <button id="clearListBtn" class="clear-list-btn" disabled>Excluir toda a lista</button>
+        </div>
+
         <div class="product-list" id="productList">
             <!-- Os produtos serão inseridos aqui dinamicamente -->
         </div>
