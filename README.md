@@ -10,6 +10,8 @@ Um sistema web prático para gerenciar suas compras no mercado, calcular o total
 
 ⌨️ Digitação rápida: Digite apenas os números do preço; `5` vira `0,05`, `50` vira `0,50` e `500` vira `5,00`
 
+📷 Leitura de preços: Tire uma foto, escolha um dos preços encontrados pelo OCR e aplique ao produto. A foto não é salva
+
 ✅ Marcação de Itens: Marque produtos como comprados
 
 🧮 Cálculo Automático: Soma automática dos valores à medida que você compra

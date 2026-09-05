@@ -4,8 +4,16 @@ const productList = document.getElementById('productList');
 const totalAmount = document.getElementById('totalAmount');
 const addFeedback = document.getElementById('addFeedback');
 const clearListBtn = document.getElementById('clearListBtn');
+const pricePhotoInput = document.getElementById('pricePhotoInput');
+const ocrModal = document.getElementById('ocrModal');
+const ocrModalTitle = document.getElementById('ocrModalTitle');
+const ocrStatus = document.getElementById('ocrStatus');
+const ocrPrices = document.getElementById('ocrPrices');
+const closeOcrModalBtn = document.getElementById('closeOcrModalBtn');
 
 let products = [];
+let ocrTargetProductId = null;
+let ocrBusy = false;
 
 function loadProducts() {
     const savedProducts = localStorage.getItem('shoppingList');
@@ -108,7 +116,10 @@ function renderProducts() {
                 </label>
                 <label class="product-field price-field">
                     <span class="field-label">Preço</span>
-                    <input type="text" inputmode="numeric" class="product-price" placeholder="0,00" value="${product.price > 0 ? formatPrice(product.price) : ''}" data-id="${product.id}" aria-label="Preço de ${escapeHtml(product.name)}">
+                    <span class="price-input-group">
+                        <input type="text" inputmode="numeric" class="product-price" placeholder="0,00" value="${product.price > 0 ? formatPrice(product.price) : ''}" data-id="${product.id}" aria-label="Preço de ${escapeHtml(product.name)}">
+                        <button type="button" class="scan-price-btn" data-id="${product.id}" aria-label="Ler preço de ${escapeHtml(product.name)} pela foto" title="Ler preço pela foto">📷</button>
+                    </span>
                 </label>
                 <div class="product-field subtotal-field">
                     <span class="field-label">Subtotal</span>
@@ -136,6 +147,221 @@ function renderProducts() {
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', deleteProduct);
     });
+
+    document.querySelectorAll('.scan-price-btn').forEach(button => {
+        button.addEventListener('click', selectPricePhoto);
+    });
+}
+
+function selectPricePhoto(event) {
+    if (ocrBusy) {
+        return;
+    }
+
+    ocrTargetProductId = parseInt(event.currentTarget.dataset.id);
+    pricePhotoInput.click();
+}
+
+function openOcrModal(productName) {
+    ocrModalTitle.textContent = `Preço de ${productName}`;
+    ocrStatus.textContent = 'Carregando a imagem...';
+    ocrPrices.innerHTML = '';
+    ocrModal.hidden = false;
+}
+
+function closeOcrModal() {
+    if (ocrBusy) {
+        return;
+    }
+
+    ocrModal.hidden = true;
+    ocrTargetProductId = null;
+}
+
+function updateOcrProgress() {
+    ocrStatus.textContent = 'Carregando a imagem...';
+}
+
+function canvasToBlob(canvas) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+            if (blob) {
+                resolve(blob);
+                return;
+            }
+
+            reject(new Error('Não foi possível preparar a imagem.'));
+        }, 'image/png');
+    });
+}
+
+async function prepareImagesForOcr(file) {
+    if (!window.createImageBitmap) {
+        return [file];
+    }
+
+    const image = await createImageBitmap(file);
+    const maximumSide = 2000;
+    const targetSide = 1400;
+    const largestSide = Math.max(image.width, image.height);
+    const scale = Math.min(maximumSide / largestSide, Math.max(1, targetSide / largestSide));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    const context = canvas.getContext('2d');
+    context.filter = 'grayscale(1) contrast(1.7)';
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    image.close();
+
+    const binaryCanvas = document.createElement('canvas');
+    binaryCanvas.width = canvas.width;
+    binaryCanvas.height = canvas.height;
+    const binaryContext = binaryCanvas.getContext('2d');
+    binaryContext.drawImage(canvas, 0, 0);
+
+    const imageData = binaryContext.getImageData(0, 0, binaryCanvas.width, binaryCanvas.height);
+    const pixels = imageData.data;
+
+    for (let index = 0; index < pixels.length; index += 4) {
+        const value = pixels[index] < 180 ? 0 : 255;
+        pixels[index] = value;
+        pixels[index + 1] = value;
+        pixels[index + 2] = value;
+    }
+
+    binaryContext.putImageData(imageData, 0, 0);
+
+    return Promise.all([
+        canvasToBlob(canvas),
+        canvasToBlob(binaryCanvas)
+    ]);
+}
+
+function extractPricesFromText(text) {
+    const matches = text.match(/\b(?:\d{1,3}(?:[.\s]\d{3})+|\d+)[,.]\s*\d{2}\b/g) || [];
+    const uniquePrices = new Map();
+
+    matches.forEach(match => {
+        const normalized = match.replace(/\s/g, '');
+        const separatorIndex = Math.max(normalized.lastIndexOf(','), normalized.lastIndexOf('.'));
+        const integerPart = normalized.slice(0, separatorIndex).replace(/\D/g, '');
+        const centsPart = normalized.slice(separatorIndex + 1).replace(/\D/g, '').slice(0, 2);
+        const cents = (parseInt(integerPart, 10) * 100) + parseInt(centsPart, 10);
+
+        if (Number.isFinite(cents) && cents >= 0 && !uniquePrices.has(cents)) {
+            uniquePrices.set(cents, cents / 100);
+        }
+    });
+
+    return [...uniquePrices.values()];
+}
+
+function showDetectedPrices(prices) {
+    if (prices.length === 0) {
+        ocrStatus.textContent = 'Não encontrei um preço com centavos. Tente outra foto, mais próxima e bem iluminada.';
+        return;
+    }
+
+    ocrStatus.textContent = prices.length === 1
+        ? 'Encontrei 1 preço. Toque para adicionar:'
+        : `Encontrei ${prices.length} preços. Qual deles deseja adicionar?`;
+
+    prices.forEach(price => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ocr-price-choice';
+        button.dataset.price = String(price);
+        button.textContent = `R$ ${formatPrice(price)}`;
+        ocrPrices.appendChild(button);
+    });
+}
+
+async function readPricesFromPhoto(event) {
+    const file = event.target.files[0];
+    const product = products.find(item => item.id === ocrTargetProductId);
+
+    if (!file || !product) {
+        pricePhotoInput.value = '';
+        return;
+    }
+
+    openOcrModal(product.name);
+    ocrBusy = true;
+    closeOcrModalBtn.disabled = true;
+    let worker;
+
+    try {
+        if (!window.Tesseract) {
+            throw new Error('A biblioteca de leitura não foi carregada. Verifique sua internet.');
+        }
+
+        const preparedImages = await prepareImagesForOcr(file);
+        worker = await Tesseract.createWorker('eng', 1, {
+            logger: updateOcrProgress
+        });
+        await worker.setParameters({
+            tessedit_char_whitelist: '0123456789,.$ ',
+            preserve_interword_spaces: '1',
+            tessedit_pageseg_mode: '11',
+            user_defined_dpi: '300'
+        });
+
+        const recognizedTexts = [];
+        const confidences = [];
+
+        for (const preparedImage of preparedImages) {
+            const result = await worker.recognize(preparedImage);
+            recognizedTexts.push(result.data.text || '');
+            confidences.push(result.data.confidence);
+        }
+
+        const recognizedText = recognizedTexts.join('\n--- segunda leitura ---\n');
+        const averageConfidence = confidences.reduce((sum, value) => sum + value, 0) / confidences.length;
+
+        console.group('Resultado do OCR');
+        console.log('Texto reconhecido:', recognizedText);
+        console.log('Confiança média:', averageConfidence);
+        console.groupEnd();
+
+        showDetectedPrices(extractPricesFromText(recognizedText));
+    } catch (error) {
+        console.error('Erro durante a leitura do OCR:', error);
+        ocrStatus.textContent = error.message || 'Não foi possível ler esta foto. Tente novamente.';
+    } finally {
+        if (worker) {
+            await worker.terminate();
+        }
+
+        // A foto nunca é salva. Remover o arquivo do input libera a referência após a leitura.
+        pricePhotoInput.value = '';
+        ocrBusy = false;
+        closeOcrModalBtn.disabled = false;
+    }
+}
+
+function applyDetectedPrice(event) {
+    const button = event.target.closest('.ocr-price-choice');
+
+    if (!button) {
+        return;
+    }
+
+    const product = products.find(item => item.id === ocrTargetProductId);
+
+    if (!product) {
+        closeOcrModal();
+        return;
+    }
+
+    product.price = Number(button.dataset.price);
+    product.checked = true;
+    saveProducts();
+    renderProducts();
+    updateTotal();
+
+    addFeedback.textContent = `Preço de R$ ${formatPrice(product.price)} adicionado e ${product.name} marcado como comprado.`;
+    closeOcrModal();
 }
 
 function toggleProduct(event) {
@@ -221,6 +447,14 @@ function updateTotal() {
 
 addProductBtn.addEventListener('click', addProducts);
 clearListBtn.addEventListener('click', clearProductList);
+pricePhotoInput.addEventListener('change', readPricesFromPhoto);
+ocrPrices.addEventListener('click', applyDetectedPrice);
+closeOcrModalBtn.addEventListener('click', closeOcrModal);
+ocrModal.addEventListener('click', function(event) {
+    if (event.target === ocrModal) {
+        closeOcrModal();
+    }
+});
 productInput.addEventListener('keydown', function(event) {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();

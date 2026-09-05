@@ -34,7 +34,20 @@
             <div class="total-amount" id="totalAmount">R$ 0,00</div>
         </div>
     </div>
+
+    <input type="file" id="pricePhotoInput" accept="image/*" capture="environment" hidden>
+
+    <div id="ocrModal" class="ocr-modal" role="dialog" aria-modal="true" aria-labelledby="ocrModalTitle" hidden>
+        <div class="ocr-modal-card">
+            <button id="closeOcrModalBtn" class="modal-close-btn" type="button" aria-label="Fechar">×</button>
+            <h2 id="ocrModalTitle">Escolha o preço</h2>
+            <p class="ocr-privacy-note">A foto é usada somente durante a leitura e será descartada depois.</p>
+            <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
+            <div id="ocrPrices" class="ocr-prices"></div>
+        </div>
+    </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
